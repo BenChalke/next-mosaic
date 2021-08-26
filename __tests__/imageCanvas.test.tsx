@@ -31,7 +31,7 @@ test("ImageCanvas Renders with reset button", () => {
 
 test("ImageCanvas Renders without reset button", () => {
   const setReset = () => {};
-  const rendered = true;
+  const rendered = false;
 
   render(<ImageCanvas setResetFn={setReset} rendered={rendered} />);
   const resetInputEl = screen.queryByText('Reset'); 

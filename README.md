@@ -66,3 +66,6 @@ You may:
   etc); however, it is not the focus of the task, a minimal UI is fine.
 
 Have fun!
+
+
+## NOTE: YOU WILL NEED TO COPY THE .env.local.example AND RENAME TO .env.local FOR THE PROJECT TO WORK!!
