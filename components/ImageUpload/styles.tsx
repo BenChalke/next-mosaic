@@ -4,7 +4,6 @@ export const UploadContainer = styled.div`
   max-width: 1200px;
   margin: 0 auto;
   text-align: center;
-  min-height: 600px;
   background-color: #333333;
   margin-bottom: 80px;
 `;

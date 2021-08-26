@@ -3,7 +3,6 @@ import styled from "styled-components";
 export const FooterContainer = styled.div`
   width: 100%;
   text-align: center;
-  height: 40px;
   background-color: #333333;
   position: absolute;
   bottom: 0;
@@ -12,10 +11,8 @@ export const FooterContainer = styled.div`
 `;
 
 export const StyledP = styled.p`
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  text-align: center;
   font-weight: 100;
   font-size: 0.9rem;
+  padding: 10px;
 `;

@@ -9,10 +9,10 @@ function Homepage(): JSX.Element {
   const [imageAvailable, setImageAvailable] = useState<Boolean>(false);
 
   return (
-    <>
+    <div data-testid='homepage'>
       <MainTitle>Next.js Mosaic</MainTitle>
       <ImageUpload stdTileWidth={`${TILE_WIDTH}`}  stdTileHeight={`${TILE_HEIGHT}`} />
-    </>
+    </div>
   );
 }
 

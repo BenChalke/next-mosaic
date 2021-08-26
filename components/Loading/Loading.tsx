@@ -1,10 +1,10 @@
-import { LoadingContainer } from './styles';
+import { LoadingContainer, LoadingImg } from './styles';
 
 const Loading: React.FC = () => {
   return (
     <>
-      <LoadingContainer>
-        <img src="/loading.gif"/>
+      <LoadingContainer data-testid="loading">
+        <LoadingImg src="/loading.gif"/>
         <p>Loading...</p>
       </LoadingContainer>   
     </>

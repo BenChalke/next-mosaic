@@ -9,14 +9,9 @@ interface SvgArray {
   y:number
 }
 
-interface ModifiedImageData {
-  (
-    data:Uint8ClampedArray,
-    width:number,
-    height:number,
-    x?:number,
-    y?:number
-  ):void
+interface ModifiedImageData extends ImageData {
+  x?:number,
+  y?:number
 };
 
 interface Prop {
@@ -33,6 +28,7 @@ const ImageUpload: React.FC<Prop> = ({ stdTileWidth, stdTileHeight }) => {
 
   const [imgUploaded, setImgUploaded] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
+  const [rendered, setRendered] = useState<boolean>(false);
   const [imgW, setImgW] = useState<number>();
   const [imgH, setImgH] = useState<number>();
   const [tileWidth, setTileWidth] = useState<number>();
@@ -40,7 +36,7 @@ const ImageUpload: React.FC<Prop> = ({ stdTileWidth, stdTileHeight }) => {
   const [tileCountX, setTileCountX] = useState<number | undefined>();
   const [tileCountY, setTileCountY] = useState<number | undefined>();
   const [imgData, setImgData] = useState<ModifiedImageData>();
-  const [reset, setReset] = useState<Boolean>();
+  const [reset, setReset] = useState<boolean>(false);
 
   useEffect(() => {
     // Set the tile dimensions with the ENV setting
@@ -51,16 +47,11 @@ const ImageUpload: React.FC<Prop> = ({ stdTileWidth, stdTileHeight }) => {
     const canvas:HTMLCanvasElement | null = document.querySelector("#imageCanvas");
     canvas!.height = document.body.offsetHeight - 200;
 
-    async function doRender() {
-      const tiles:ModifiedImageData[][] = await getTiles(tileCountX!, tileCountY!);
+    function doRender() {
+      const tiles:ModifiedImageData[] = getTiles(tileCountX!, tileCountY!);
       drawTiles(tiles!);
     }
 
-    doRender();
-    
-  }, [imgData]);
-
-  useEffect(() => {
     // Reset the whole component if reset is true
     if(reset === true) {
       const canvas:HTMLCanvasElement | null = document.querySelector("#imageCanvas");
@@ -68,18 +59,18 @@ const ImageUpload: React.FC<Prop> = ({ stdTileWidth, stdTileHeight }) => {
       ctx!.clearRect(0, 0, canvas!.width, canvas!.height);
 
       // Reset all states to original states
-      setImgUploaded(false);
       setLoading(false);
-      setImgW(undefined);
-      setImgH(undefined);
-      setTileWidth(undefined);
-      setTileHeight(undefined);
-      setTileCountX(undefined);
-      setTileCountY(undefined);
+      setImgUploaded(false);
       setImgData(undefined);
+      setRendered(false);
       setReset(false);
+    } else {
+      if(imgData) {
+        doRender();
+      }
     }
-  }, [reset]);
+    
+  }, [imgData, reset]);
 
   const handleImageUpload = (e: React.FormEvent<HTMLInputElement>) => {
     
@@ -140,13 +131,13 @@ const ImageUpload: React.FC<Prop> = ({ stdTileWidth, stdTileHeight }) => {
   }
   
   //generate all tiles
-  const getTiles = async (tileCountX:number, tileCountY:number) => {
+  const getTiles = (tileCountX:number, tileCountY:number) => {
     const tiles = [];
 
     // Ensure all needed variables are not undefined
     for (let yi = 0; yi < tileCountY; yi++) {
       for (let xi = 0; xi < tileCountX; xi++) {
-        tiles.push(await getTile(xi * tileWidth!, yi * tileHeight!));
+        tiles.push(getTile(xi * tileWidth!, yi * tileHeight!));
       }
     }
 
@@ -154,12 +145,12 @@ const ImageUpload: React.FC<Prop> = ({ stdTileWidth, stdTileHeight }) => {
   }
   
   // Get a tile of size tileWidth and tileHeight from position xy
-  const getTile = async (x:number, y:number) => {
-    let tile:ModifiedImageData[] = [];
-    const data:number[] = imgData!.data;
+  const getTile = (x:number, y:number) => {
+    let tile:ModifiedImageData | number[] = Array();
+    const data:Uint8ClampedArray = imgData!.data;
     
     for (let i = 0; i < tileWidth!; i++) {
-      await tile.push(...data.slice(getIndex(x, y + i), getIndex(x + tileWidth!, y + i)));
+      tile.push(...data.slice(getIndex(x, y + i), getIndex(x + tileWidth!, y + i)));
     }
     // Convert back to typed array and to imgdata object
     tile = new ImageData(new Uint8ClampedArray(tile), tileWidth!, tileHeight!);
@@ -173,25 +164,25 @@ const ImageUpload: React.FC<Prop> = ({ stdTileWidth, stdTileHeight }) => {
   
   const getIndex = (x:number, y:number) => {
     const i = indexX(x) + indexY(y)!;
-    if (i > imgData!.length) console.warn("XY out of bounds");
+    if (i > imgData!.x!) console.warn("XY out of bounds");
     return i;
   }
   
   //get imgdata index from img px positions
   const indexX = (x:number) => {
     const i = x * 4;
-    if (i > imgData!.length) console.warn("X out of bounds");
+    if (i > imgData!.x!) console.warn("X out of bounds");
     return i;
   }
   const indexY = (y:number) => {
     if(imgW) {
       const i = imgW * 4 * y;
-      if (i > imgData!.length) console.warn("Y out of bounds");
+      if (i > imgData!.y!) console.warn("Y out of bounds");
       return i;
     }
   }
   
-  const drawTiles = async (tiles:[]) => {
+  const drawTiles = async (tiles:ModifiedImageData[]) => {
     // Get all of the SVG data
     const svgArray:SvgArray[] = await fetchSvgs(tiles);
     
@@ -222,17 +213,17 @@ const ImageUpload: React.FC<Prop> = ({ stdTileWidth, stdTileHeight }) => {
 
     setLoading(false);
     const svgRows = getSvgRows(svgImgArr);
-    console.log(svgRows);
 
     svgRows.forEach((row) => {
       // Need this timeout in order to avoid the render from going too fast and missing out of tiles for the very first render
-      // Tested on Firefox fresh browser with no cache --- Found it requires 1000 timeout
+      // Tested on Firefox fresh browser with no cache --- Found it requires 2000 timeout
       setTimeout(() => {
         row.forEach((item) => {
             ctx!.drawImage(item, item.svgX!, item.svgY!, tileWidth!, tileHeight!);
         })
-      }, 1000);
+      }, 2000);
     });
+    setRendered(true);
   }
 
   const getSvgRows = (svgImgArr:SvgImage[]) => {
@@ -258,7 +249,7 @@ const ImageUpload: React.FC<Prop> = ({ stdTileWidth, stdTileHeight }) => {
     return resultArr;
   }
 
-  async function fetchSvgs (tiles:ImageData[]) {
+  async function fetchSvgs (tiles:ModifiedImageData[]) {
     let colour = '';
     let svgArray:SvgArray[] = [];
     for (const d of tiles) {
@@ -268,19 +259,19 @@ const ImageUpload: React.FC<Prop> = ({ stdTileWidth, stdTileHeight }) => {
       // Call the API to get the coloured SVG and store the value on an array
       const data:Response = await fetch(`http://localhost:3000/api/colour/${colour}`, {cache: "force-cache", credentials: 'same-origin'});
       const dataResult:string = await data.text();
-      svgArray.push({svg:dataResult, x: d.x, y: d.y });
+      svgArray.push({svg:dataResult, x: d.x!, y: d.y! });
     };
     
     return svgArray;
   }
 
   return (
-    <UploadContainer className='uploadContainer'>
+    <UploadContainer data-testid='uploadContainer' className='uploadContainer'>
       <>
         <StyledLabel className={imgUploaded ? 'hidden' : ''} htmlFor="image-upload">Upload Image</StyledLabel>
-        <StyledInput id="image-upload" className={imgUploaded ? 'hidden' : ''} name="image-upload" type="file" onChange={handleImageUpload} />
+        <StyledInput id="image-upload" className={imgUploaded ? 'hidden' : ''} name="image-upload" type="file" accept="image/*" onChange={handleImageUpload} />
       </>
-      <ImageCanvas setResetFn={setReset} />
+      <ImageCanvas setResetFn={setReset} rendered={rendered} />
       {loading && <Loading />}
     </UploadContainer>
   );
